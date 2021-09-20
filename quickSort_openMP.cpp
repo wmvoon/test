@@ -3,25 +3,20 @@
 #include <chrono>
 #include <fstream>
 #include <time.h>
-#include <pthread.h>
+#include <omp.h>
 
 using namespace std;
 using namespace std::chrono;
 
+//defining the threads being used
 #define max_threads 4
 
-struct Array
-{
-    int seed;
-    int *arr;
-    int start;
-    int end;
-};
+const long SIZE = 10000L;
 
 // A utility function to swap two elements
-void swap(Array *a, Array *b)
+void swap(int* a, int* b)
 {
-    Array t = *a;
+    int t = *a;
     *a = *b;
     *b = t;
 }
@@ -31,9 +26,9 @@ void swap(Array *a, Array *b)
     array, and places all smaller (smaller than pivot)
    to left of pivot and all greater elements to right
    of pivot */
-int partition (Array arr[], int low, int high)
+int partition (int arr[], int low, int high)
 {
-    Array pivot = arr[high];    // pivot
+    int pivot = arr[high];    // pivot
     int i = (low - 1);  // Index of smaller element
  
     for (int j = low; j <= high- 1; j++)
@@ -49,8 +44,12 @@ int partition (Array arr[], int low, int high)
     swap(&arr[i + 1], &arr[high]);
     return (i + 1);
 }
-
-void quickSort(Array arr[], int low, int high)
+ 
+/* The main function that implements QuickSort
+ arr[] --> Array to be sorted,
+  low  --> Starting index,
+  high  --> Ending index */
+void quickSort(int arr[], int low, int high)
 {
     if (low < high)
     {
@@ -63,70 +62,44 @@ void quickSort(Array arr[], int low, int high)
         quickSort(arr, low, pi - 1);
         quickSort(arr, pi + 1, high);
     }
-} 
+}
 
-/* The main function that implements QuickSort
- arr[] --> Array to be sorted,
-  low  --> Starting index,
-  high  --> Ending index */
-void *qSort(void *args)
-{   
-    Array *arr = ((struct Array *)args);
-    int arr;
-    int low = 0;
-    int high = (sizeof(arr)/sizeof(arr[0])) - 1;
-    for (int i = arr->start; i < arr->end; i++)
+void* Q_sort(int q)
+{
+    int *arr;
+    for (int i = 0; i < SIZE; i++)
     {
-        if (low < high)
-        {
-            /* pi is partitioning index, arr[p] is now
-            at right place */
-            int pi = partition(arr, low, high);
- 
-            // Separately sort elements before
-            // partition and after partition
-            quickSort(arr, low, pi - 1);
-            quickSort(arr, pi + 1, high);
-        }
+        arr[i] = rand() % 10000;
     }
-    return NULL;
+
+    int n = sizeof(arr)/sizeof(arr[0]);
+    quickSort(arr, 0, n-1);
+    //printing array
+    printf("Sorted array:\n");
+    for (int i=0; i < SIZE; i++)
+    {  
+        printf("%d ", arr[i]);
+    }
+    return 0;
 }
  
 // Driver program to test above functions
 int main()
 {
-    pthread_t threads[max_threads];
-    int i;
     int *arr;
-    unsigned long size = 10000L;
+    unsigned long size = SIZE;
+    
+    omp_set_num_threads(max_threads);
 
     arr = (int *)malloc(size * sizeof(int *));
   
     //start time 
     auto start = high_resolution_clock::now();
    
-    for (int i = 0; i < size; i++)
+    #pragma omp parallel
     {
-        arr[i] = rand() % 10000;
-    }
-
-    //spliting the program to each thread to achieve parallelism
-    int n = sizeof(arr)/sizeof(arr[0]);
-    int p = pthread_create(&threads[i], NULL, qSort, (void*)(arr, 0, n-1));
-
-    //joining all the completed task in each threads
-    for (int i = 0; i < max_threads; i++)
-    {
-        pthread_join(threads[i], NULL);
-    }
-
-    //int n = sizeof(arr)/sizeof(arr[0]);
-    //quickSort(arr, 0, n-1);
-    //printing array
-    printf("Sorted array:\n");
-    for (int i=0; i < size; i++)
-    {  
-        printf("%d ", arr[i]);
+        int i = omp_get_thread_num();
+        Q_sort(i);
     }
 
     //stop time
