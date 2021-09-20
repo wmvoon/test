@@ -81,7 +81,7 @@ int main()
 
     //spliting the program to each thread to achieve parallelism
     int n = sizeof(arr)/sizeof(arr[0]);
-    int p = pthread_create(&threads[i], NULL, quickSort(arr, 0, n-1), NULL);
+    int p = pthread_create(&threads[i], NULL, quickSort(arr, 0, n-1), NULL);  ///////error
 
     //joining all the completed task in each threads
     for (int i = 0; i < max_threads; i++)
